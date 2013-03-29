@@ -1484,7 +1484,6 @@ public class MediaPlayer implements SubtitleController.Listener
      */
     public void release() {
         stayAwake(false);
-        updateSurfaceScreenOn();
         mOnPreparedListener = null;
         mOnBufferingUpdateListener = null;
         mOnCompletionListener = null;
