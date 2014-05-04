@@ -49,6 +49,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.os.RemoteException;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.provider.DocumentsContract;
@@ -1202,7 +1203,7 @@ public class DocumentsActivity extends Activity {
                         resolver, cwd.derivedUri.getAuthority());
                 childUri = DocumentsContract.createDocument(
                         client, cwd.derivedUri, mMimeType, mDisplayName);
-            } catch (Exception e) {
+            } catch (RemoteException e) {
                 Log.w(TAG, "Failed to create document", e);
             } finally {
                 ContentProviderClient.releaseQuietly(client);
@@ -1225,6 +1226,94 @@ public class DocumentsActivity extends Activity {
             }
 
             setPending(false);
+        }
+    }
+
+    private class CopyOrCutFilesTask extends AsyncTask<Void, Integer, Void> {
+        private final DocumentInfo[] mDocs;
+        private boolean mIsCopy;
+        private ProgressDialog mProgressDialog;
+
+        public CopyOrCutFilesTask(DocumentInfo... docs) {
+            mDocs = docs;
+            mIsCopy = mClipboardIsCopy;
+            mProgressDialog = new ProgressDialog(DocumentsActivity.this);
+            mProgressDialog.setMessage(getString(R.string.copy_in_progress));
+            mProgressDialog.setIndeterminate(false);
+            mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+            mProgressDialog.setMax(docs.length);
+            mProgressDialog.setProgress(0);
+            mProgressDialog.setCanceledOnTouchOutside(false);
+
+            mProgressDialog.show();
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            final ContentResolver resolver = getContentResolver();
+            ContentProviderClient client = null;
+
+            int count = 0;
+            for (DocumentInfo doc : mDocs) {
+                try {
+                    final DocumentInfo cwd = getCurrentDirectory();
+                    client = DocumentsApplication.acquireUnstableProviderOrThrow(
+                    resolver, cwd.derivedUri.getAuthority());
+
+                    // Create a new file of the same MIME type as the original
+                    final Uri childUri = DocumentsContract.createDocument(
+                    client, cwd.derivedUri, doc.mimeType, doc.displayName);
+
+                    ContentProviderClient.releaseQuietly(client);
+
+                    if (childUri == null) {
+                        Log.e(TAG, "Failed to create a new document (uri is null)");
+                        continue;
+                    }
+
+                    final DocumentInfo copy = DocumentInfo.fromUri(resolver, childUri);
+
+                    // Push data to the new file
+                    copyFile(doc.derivedUri, copy.derivedUri);
+
+                    // If we cut, delete the original file
+                    if (!mIsCopy) {
+                        DocumentsContract.deleteDocument(client, doc.derivedUri);
+                    }
+
+                    count++;
+                    publishProgress((Integer) count);
+                } catch (RemoteException e) {
+                    Log.w(TAG, "Failed to copy " + doc, e);
+                } catch (FileNotFoundException e) {
+                    Log.w(TAG, "Failed to copy " + doc, e);
+                }catch (IOException e) {
+                    Log.w(TAG, "Failed to copy " + doc, e);
+                }
+            }
+
+            return null;
+        }
+
+        protected void onProgressUpdate(Integer... progress) {
+            mProgressDialog.setProgress(progress[0]);
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            mProgressDialog.dismiss();
+
+            // Notify that files were copied
+            final Resources r = getResources();
+            Toast.makeText(DocumentsActivity.this,
+            r.getQuantityString(R.plurals.files_pasted, mDocs.length, mDocs.length),
+            Toast.LENGTH_SHORT).show();
+
+            // Update the action bar buttons
+            invalidateOptionsMenu();
+
+            // Hack to refresh the contents.
+            DirectoryFragment.get(getFragmentManager()).onUserSortOrderChanged();
         }
     }
 
