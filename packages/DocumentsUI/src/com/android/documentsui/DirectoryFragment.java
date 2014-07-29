@@ -130,6 +130,7 @@ public class DirectoryFragment extends Fragment {
     private static final String EXTRA_IGNORE_STATE = "ignoreState";
 
     private final int mLoaderId = 42;
+    private DirectoryLoader mLoader;
 
     public static void showNormal(FragmentManager fm, RootInfo root, DocumentInfo doc, int anim) {
         show(fm, TYPE_NORMAL, root, doc, null, anim);
@@ -334,6 +335,8 @@ public class DirectoryFragment extends Fragment {
         getLoaderManager().restartLoader(mLoaderId, null, mCallbacks);
 
         updateDisplayState();
+
+        mLoader = new DirectoryLoader(context);
     }
 
     @Override
@@ -629,6 +632,32 @@ public class DirectoryFragment extends Fragment {
             try {
                 client = DocumentsApplication.acquireUnstableProviderOrThrow(
                         resolver, doc.derivedUri.getAuthority());
+
+                if (Document.MIME_TYPE_DIR.equals(doc.mimeType)) {
+                    // In order to delete a directory, we must delete its contents first. We
+                    // recursively do so.
+                    Uri contentsUri = DocumentsContract.buildChildDocumentsUri(
+                        doc.authority, doc.documentId);
+                    final RootInfo root = getArguments().getParcelable(EXTRA_ROOT);
+
+                    // We get the contents of the directory
+                    mLoader.init(mType, root, doc, contentsUri, SORT_ORDER_UNKNOWN);
+
+                    DirectoryResult result = mLoader.loadInBackground();
+                    Cursor cursor = result.cursor;
+
+                    // Build a list of the docs to delete, and delete them
+                    ArrayList<DocumentInfo> docsToDelete = new ArrayList<DocumentInfo>();
+                    for (int i = 0; i < cursor.getCount(); i++) {
+                        cursor.moveToPosition(i);
+                        final DocumentInfo subDoc = DocumentInfo.fromDirectoryCursor(cursor);
+                        docsToDelete.add(subDoc);
+                    }
+
+                    onDeleteDocumentsImpl(docsToDelete);
+                }
+
+
                 DocumentsContract.deleteDocument(client, doc.derivedUri);
             } catch (RemoteException e) {
                 Log.w(TAG, "Failed to delete " + doc, e);
