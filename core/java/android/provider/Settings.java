@@ -3496,7 +3496,12 @@ public final class Settings {
          * @hide
          */
         public static final String NAVBAR_LEFT_IN_LANDSCAPE = "navigation_bar_left";
-
+        public static final String NETWORK_TRAFFIC_STATE = "network_traffic_state";
+       /**
+        * Network stats Color style
+        * @hide
+        */
+       public static final String NETWORK_TRAFFIC_COLOR = "network_traffic_color";
         /**
          * Locale for secondary overlay on dialer for t9 search input
          * @hide
