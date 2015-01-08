@@ -293,7 +293,9 @@ public class DocumentsActivity extends Activity {
         if (mState.action == ACTION_OPEN || mState.action == ACTION_GET_CONTENT) {
             mState.allowMultiple = intent.getBooleanExtra(
                     Intent.EXTRA_ALLOW_MULTIPLE, false);
-        }
+            } else if (mState.action == ACTION_STANDALONE) {
+                mState.allowMultiple = true;
+            }
 
         if (mState.action == ACTION_MANAGE) {
             mState.acceptMimes = new String[] { "*/*" };
@@ -467,6 +469,8 @@ public class DocumentsActivity extends Activity {
                 mRootsToolbar.setTitle(R.string.title_open);
             } else if (mState.action == ACTION_CREATE) {
                 mRootsToolbar.setTitle(R.string.title_save);
+            } else if (mState.action == ACTION_STANDALONE) {
+                mRootsToolbar.setTitle(R.string.title_standalone);
             }
         }
 
