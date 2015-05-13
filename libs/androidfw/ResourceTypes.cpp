@@ -564,7 +564,7 @@ status_t ResStringPool::setTo(const void* data, size_t size, bool copyData)
 
         if ((mHeader->flags&ResStringPool_header::UTF8_FLAG &&
                 ((uint8_t*)mStrings)[mStringPoolSize-1] != 0) ||
-                (!mHeader->flags&ResStringPool_header::UTF8_FLAG &&
+                (!(mHeader->flags&ResStringPool_header::UTF8_FLAG) &&
                 ((uint16_t*)mStrings)[mStringPoolSize-1] != 0)) {
             ALOGW("Bad string block: last string is not 0-terminated\n");
             return (mError=BAD_TYPE);
@@ -4669,7 +4669,7 @@ bool ResTable::stringToFloat(const char16_t* s, size_t len, Res_value* outValue)
     if (*end == 0) {
         if (outValue) {
             outValue->dataType = outValue->TYPE_FLOAT;
-            *(float*)(&outValue->data) = f;
+            memcpy(&outValue->data, &f, sizeof(float));
             return true;
         }
     }
@@ -6630,7 +6630,9 @@ void ResTable::print_value(const Package* pkg, const Res_value& value) const
             }
         }
     } else if (value.dataType == Res_value::TYPE_FLOAT) {
-        printf("(float) %g\n", *(const float*)&value.data);
+        float f;
+        memcpy(&f, &value.data, sizeof(float));
+        printf("(float) %g\n", f);
     } else if (value.dataType == Res_value::TYPE_DIMENSION) {
         printf("(dimension) ");
         print_complex(value.data, false);

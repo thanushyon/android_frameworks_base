@@ -494,19 +494,17 @@ public final class InputMethodManager {
                                 mIInputContext.finishComposingText();
                             } catch (RemoteException e) {
                             }
-                            // Check focus again in case that "onWindowFocus" is called before
-                            // handling this message.
-                            if (mServedView != null && mServedView.hasWindowFocus()) {
-                                // "finishComposingText" has been already called above. So we
-                                // should not call mServedInputConnection.finishComposingText here.
-                                // Also, please note that this handler thread could be different
-                                // from a thread that created mServedView. That could happen
-                                // the current activity is running in the system process.
-                                // In that case, we really should not call
-                                // mServedInputConnection.finishComposingText.
-                                if (checkFocusNoStartInput(mHasBeenInactive, false)) {
-                                    startInputInner(null, 0, 0, 0);
-                                }
+                        }
+                        // Check focus again in case that "onWindowFocus" is called before
+                        // handling this message.
+                        if (mServedView != null && mServedView.hasWindowFocus()) {
+                            // Please note that this handler thread could be different
+                            // from a thread that created mServedView. That could happen
+                            // the current activity is running in the system process.
+                            // In that case, we really should not call
+                            // mServedInputConnection.finishComposingText.
+                            if (checkFocusNoStartInput(mHasBeenInactive, false)) {
+                                startInputInner(null, 0, 0, 0);
                             }
                         }
                     }
@@ -1995,8 +1993,8 @@ public final class InputMethodManager {
                 List<Object> info = mService.getShortcutInputMethodsAndSubtypes();
                 // "info" has imi1, subtype1, subtype2, imi2, subtype2, imi3, subtype3..in the list
                 ArrayList<InputMethodSubtype> subtypes = null;
-                final int N = info.size();
-                if (info != null && N > 0) {
+                if (info != null && !info.isEmpty()) {
+                    final int N = info.size();
                     for (int i = 0; i < N; ++i) {
                         Object o = info.get(i);
                         if (o instanceof InputMethodInfo) {

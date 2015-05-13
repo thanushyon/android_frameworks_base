@@ -34,7 +34,7 @@ import java.util.LinkedList;
  * Convenience class for capturing gestures for later analysis.
  */
 public class GestureRecorder {
-    public static final boolean DEBUG = true; // for now
+    public static final boolean DEBUG = false; // for now
     public static final String TAG = GestureRecorder.class.getSimpleName();
 
     public class Gesture {
@@ -227,10 +227,10 @@ public class GestureRecorder {
 
     public void save() {
         synchronized (mGestures) {
+            BufferedWriter w = null;
             try {
-                BufferedWriter w = new BufferedWriter(new FileWriter(mLogfile, /*append=*/ true));
+                w = new BufferedWriter(new FileWriter(mLogfile, /*append=*/ true));
                 w.append(toJsonLocked() + "\n");
-                w.close();
                 mGestures.clear();
                 // If we have a pending gesture, push it back
                 if (mCurrentGesture != null && !mCurrentGesture.isComplete()) {
@@ -242,6 +242,13 @@ public class GestureRecorder {
             } catch (IOException e) {
                 Log.e(TAG, String.format("Couldn't write gestures to %s", mLogfile), e);
                 mLastSaveLen = -1;
+            } finally {
+                if (w != null) {
+                    try {
+                        w.close();
+                    } catch (IOException ignored) {
+                    }
+                }
             }
         }
     }

@@ -264,7 +264,7 @@ public class AudioManager {
             "android.intent.action.HEADSET_PLUG";
 
     /**
-     * Broadcast Action: A sticky broadcast indicating an HMDI cable was plugged or unplugged
+     * Broadcast Action: A sticky broadcast indicating an HDMI cable was plugged or unplugged.
      *
      * The intent will have the following extra values: {@link #EXTRA_AUDIO_PLUG_STATE},
      * {@link #EXTRA_MAX_CHANNEL_COUNT}, {@link #EXTRA_ENCODINGS}.
@@ -1354,7 +1354,7 @@ public class AudioManager {
      * current ringer mode that can be queried via {@link #getRingerMode()}.
      */
     public boolean shouldVibrate(int vibrateType) {
-        String packageName = mContext.getPackageName();
+        String packageName = mApplicationContext.getPackageName();
         // Don't apply profiles for "android" context, as these could
         // come from the NotificationManager, and originate from a real package.
         if (!packageName.equals("android")) {

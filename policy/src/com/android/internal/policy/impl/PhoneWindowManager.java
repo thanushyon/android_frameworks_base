@@ -1443,9 +1443,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
     private void launchCameraAction() {
         sendCloseSystemWindows();
-        Intent intent = new Intent(Intent.ACTION_CAMERA_BUTTON, null);
-        mContext.sendOrderedBroadcastAsUser(intent, UserHandle.CURRENT_OR_SELF,
-                null, null, null, 0, null, null);
+        Intent intent = new Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA);
+        mContext.startActivityAsUser(intent, UserHandle.CURRENT_OR_SELF);
     }
 
     private void performKeyAction(int behavior) {
@@ -3152,6 +3151,13 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             }
             return 0;
         } else if (keyCode == KeyEvent.KEYCODE_APP_SWITCH) {
+
+            // Disable app switch key if navbar is set to on
+            if (scanCode != 0 && !hasHwKeysEnabled()) {
+                Log.i(TAG, "Ignoring App Switch Key: we have navbar on");
+                return 0;
+            }
+
             if (!keyguardOn) {
                 if (down) {
                     if (mPressOnAppSwitchBehavior == KEY_ACTION_APP_SWITCH
@@ -5646,6 +5652,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     msg.setAsynchronous(true);
                     msg.sendToTarget();
                 }
+                break;
             }
         }
 
@@ -7143,6 +7150,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         if (denyTransientStatus || denyTransientNav) {
             // clear the clearable flags instead
             clearClearableFlagsLw();
+            vis &= ~View.SYSTEM_UI_CLEARABLE_FLAGS;
         }
 
         vis = mStatusBarController.updateVisibilityLw(transientStatusBarAllowed, oldVis, vis);

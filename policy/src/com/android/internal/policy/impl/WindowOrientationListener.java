@@ -23,7 +23,6 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Handler;
 import android.os.SystemProperties;
-import android.util.FloatMath;
 import android.util.Log;
 import android.util.Slog;
 import android.util.TimeUtils;
@@ -263,22 +262,22 @@ public abstract class WindowOrientationListener {
         // the low-pass filter already suppresses most of the noise so we're really just
         // looking for quick confirmation that the last few samples are in agreement as to
         // the desired orientation.
-        private static final long PROPOSAL_SETTLE_TIME_NANOS = 40 * NANOS_PER_MS;
+        private static final long PROPOSAL_SETTLE_TIME_NANOS = 20 * NANOS_PER_MS;
 
         // The minimum amount of time that must have elapsed since the device last exited
         // the flat state (time since it was picked up) before the proposed rotation
         // can change.
-        private static final long PROPOSAL_MIN_TIME_SINCE_FLAT_ENDED_NANOS = 500 * NANOS_PER_MS;
+        private static final long PROPOSAL_MIN_TIME_SINCE_FLAT_ENDED_NANOS = 250 * NANOS_PER_MS;
 
         // The minimum amount of time that must have elapsed since the device stopped
         // swinging (time since device appeared to be in the process of being put down
         // or put away into a pocket) before the proposed rotation can change.
-        private static final long PROPOSAL_MIN_TIME_SINCE_SWING_ENDED_NANOS = 300 * NANOS_PER_MS;
+        private static final long PROPOSAL_MIN_TIME_SINCE_SWING_ENDED_NANOS = 150 * NANOS_PER_MS;
 
         // The minimum amount of time that must have elapsed since the device stopped
         // undergoing external acceleration before the proposed rotation can change.
         private static final long PROPOSAL_MIN_TIME_SINCE_ACCELERATION_ENDED_NANOS =
-                500 * NANOS_PER_MS;
+                250 * NANOS_PER_MS;
 
         // If the tilt angle remains greater than the specified angle for a minimum of
         // the specified time, then the device is deemed to be lying flat
@@ -455,7 +454,7 @@ public abstract class WindowOrientationListener {
                 if (LOG) {
                     Slog.v(TAG, "Raw acceleration vector: "
                             + "x=" + x + ", y=" + y + ", z=" + z
-                            + ", magnitude=" + FloatMath.sqrt(x * x + y * y + z * z));
+                            + ", magnitude=" + Math.sqrt(x * x + y * y + z * z));
                 }
 
                 // Apply a low-pass filter to the acceleration up vector in cartesian space.
@@ -482,7 +481,7 @@ public abstract class WindowOrientationListener {
                     if (LOG) {
                         Slog.v(TAG, "Filtered acceleration vector: "
                                 + "x=" + x + ", y=" + y + ", z=" + z
-                                + ", magnitude=" + FloatMath.sqrt(x * x + y * y + z * z));
+                                + ", magnitude=" + Math.sqrt(x * x + y * y + z * z));
                     }
                     skipSample = false;
                 }
@@ -496,7 +495,7 @@ public abstract class WindowOrientationListener {
                 boolean isSwinging = false;
                 if (!skipSample) {
                     // Calculate the magnitude of the acceleration vector.
-                    final float magnitude = FloatMath.sqrt(x * x + y * y + z * z);
+                    final float magnitude = (float) Math.sqrt(x * x + y * y + z * z);
                     if (magnitude < NEAR_ZERO_MAGNITUDE) {
                         if (LOG) {
                             Slog.v(TAG, "Ignoring sensor data, magnitude too close to zero.");

@@ -18253,6 +18253,7 @@ package android.net {
   }
 
   public final class IpPrefix implements android.os.Parcelable {
+    method public boolean contains(java.net.InetAddress);
     method public int describeContents();
     method public java.net.InetAddress getAddress();
     method public int getPrefixLength();
@@ -30037,6 +30038,7 @@ package android.telecom {
     method public final int getState();
     method public final android.telecom.StatusHints getStatusHints();
     method public final boolean isRingbackRequested();
+    method protected void notifyConferenceStarted();
     method public void onAbort();
     method public void onAnswer();
     method public void onAudioStateChanged(android.telecom.AudioState);

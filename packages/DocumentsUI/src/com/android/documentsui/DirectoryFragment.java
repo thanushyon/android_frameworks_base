@@ -50,6 +50,7 @@ import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.OperationCanceledException;
 import android.os.Parcelable;
+import android.os.RemoteException;
 import android.provider.DocumentsContract;
 import android.provider.DocumentsContract.Document;
 import android.text.format.DateUtils;
@@ -83,6 +84,7 @@ import com.android.documentsui.model.DocumentInfo;
 import com.android.documentsui.model.RootInfo;
 import com.google.android.collect.Lists;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -128,6 +130,7 @@ public class DirectoryFragment extends Fragment {
     private static final String EXTRA_IGNORE_STATE = "ignoreState";
 
     private final int mLoaderId = 42;
+    private DirectoryLoader mLoader;
 
     public static void showNormal(FragmentManager fm, RootInfo root, DocumentInfo doc, int anim) {
         show(fm, TYPE_NORMAL, root, doc, null, anim);
@@ -332,6 +335,8 @@ public class DirectoryFragment extends Fragment {
         getLoaderManager().restartLoader(mLoaderId, null, mCallbacks);
 
         updateDisplayState();
+
+        mLoader = new DirectoryLoader(context);
     }
 
     @Override
@@ -585,7 +590,33 @@ public class DirectoryFragment extends Fragment {
         startActivity(intent);
     }
 
-    private void onDeleteDocuments(List<DocumentInfo> docs) {
+    private void onDeleteDocuments(final List<DocumentInfo> docs) {
+        final Context context = getActivity();
+        final ContentResolver resolver = context.getContentResolver();
+        final Resources resources = context.getResources();
+
+        // Open a confirmation dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                new DeleteFilesTask(docs.toArray(new DocumentInfo[0])).executeOnExecutor(getCurrentExecutor());
+            }
+        });
+        builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                // User cancelled the dialog, ignore actions
+            }
+        });
+
+        builder.setTitle(R.string.dialog_delete_confirm_title)
+            .setMessage(resources.getQuantityString(R.plurals.dialog_delete_confirm_message, docs.size(), docs.size()));
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private boolean onDeleteDocumentsImpl(final List<DocumentInfo> docs) {
         final Context context = getActivity();
         final ContentResolver resolver = context.getContentResolver();
 
@@ -601,9 +632,35 @@ public class DirectoryFragment extends Fragment {
             try {
                 client = DocumentsApplication.acquireUnstableProviderOrThrow(
                         resolver, doc.derivedUri.getAuthority());
+
+                if (Document.MIME_TYPE_DIR.equals(doc.mimeType)) {
+                    // In order to delete a directory, we must delete its contents first. We
+                    // recursively do so.
+                    Uri contentsUri = DocumentsContract.buildChildDocumentsUri(
+                        doc.authority, doc.documentId);
+                    final RootInfo root = getArguments().getParcelable(EXTRA_ROOT);
+
+                    // We get the contents of the directory
+                    mLoader.init(mType, root, doc, contentsUri, SORT_ORDER_UNKNOWN);
+
+                    DirectoryResult result = mLoader.loadInBackground();
+                    Cursor cursor = result.cursor;
+
+                    // Build a list of the docs to delete, and delete them
+                    ArrayList<DocumentInfo> docsToDelete = new ArrayList<DocumentInfo>();
+                    for (int i = 0; i < cursor.getCount(); i++) {
+                        cursor.moveToPosition(i);
+                        final DocumentInfo subDoc = DocumentInfo.fromDirectoryCursor(cursor);
+                        docsToDelete.add(subDoc);
+                    }
+
+                    onDeleteDocumentsImpl(docsToDelete);
+                }
+
+
                 DocumentsContract.deleteDocument(client, doc.derivedUri);
-            } catch (Exception e) {
-                Log.w(TAG, "Failed to delete " + doc);
+            } catch (RemoteException e) {
+                Log.w(TAG, "Failed to delete " + doc, e);
                 hadTrouble = true;
             } finally {
                 ContentProviderClient.releaseQuietly(client);
@@ -1032,10 +1089,12 @@ public class DirectoryFragment extends Fragment {
                             context, mThumbSize);
                     thumbs.put(mUri, result);
                 }
+            } catch (OperationCanceledException e) {
+                // Do nothing
+            } catch (RemoteException e) {
+                Log.w(TAG, "Failed to load thumbnail for " + mUri + ": " + e);
             } catch (Exception e) {
-                if (!(e instanceof OperationCanceledException)) {
-                    Log.w(TAG, "Failed to load thumbnail for " + mUri + ": " + e);
-                }
+                Log.w(TAG, "Failed to load thumbnail for " + mUri + ": " + e);
             } finally {
                 ContentProviderClient.releaseQuietly(client);
             }
