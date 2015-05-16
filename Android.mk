@@ -34,7 +34,8 @@ framework_res_source_path := APPS/framework-res_intermediates/src
 
 LOCAL_CC  := $$(TARGET_TOOLCHAIN_ROOT)/../arm-linux-androideabi-5.1/bin/arm-linux-androideabi-gcc$$(HOST_EXECUTABLE_SUFFIX)
 LOCAL_CXX := $$(TARGET_TOOLCHAIN_ROOT)/../arm-linux-androideabi-5.1/bin/arm-linux-androideabi-g++$$(HOST_EXECUTABLE_SUFFIX)
-  
+
+LOCAL_CPPFLAGS := -std=gnu++11  
 
 # embedded builds use nothing in frameworks/base
 ifneq ($(ANDROID_BUILD_EMBEDDED),true)
