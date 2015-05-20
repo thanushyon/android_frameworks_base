@@ -1703,7 +1703,7 @@ class AlarmManagerService extends SystemService {
         public int compare(Alarm a1, Alarm a2) {
             long when1 = a1.whenElapsed;
             long when2 = a2.whenElapsed;
-            if (when1 - when2 > 0) {
+            if (when1 > when2) {
                 return 1;
             }
             if (when1 < when2) {
