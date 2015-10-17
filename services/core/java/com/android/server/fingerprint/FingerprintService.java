@@ -63,11 +63,15 @@ import java.util.Set;
 public class FingerprintService extends SystemService {
     private final String TAG = "FingerprintService";
     private static final boolean DEBUG = false;
+<<<<<<< HEAD
 
     private static final String PARAM_WAKEUP = "wakeup";
 
     private final Map<IBinder, ClientData> mClients
             = Collections.synchronizedMap(new ArrayMap<IBinder, ClientData>());
+=======
+    private ArrayMap<IBinder, ClientData> mClients = new ArrayMap<IBinder, ClientData>();
+>>>>>>> c9ca54b... Disable Lots of Debugging
 
     private static final int MSG_NOTIFY = 10;
 
